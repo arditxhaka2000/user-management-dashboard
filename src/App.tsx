@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useEffect, useState } from 'react';
 import { Layout } from './components/layout/Layout';
 import { TopBar } from './components/layout/TopBar';
@@ -22,6 +21,7 @@ function App() {
     error,
     setError,
     deleteSelected,
+    selectedIds,
   } = useUserStore();
 
   const { notify } = useToast();
@@ -33,9 +33,7 @@ function App() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === '/' && (e.target as HTMLElement).tagName !== 'INPUT') {
         e.preventDefault();
-        const input = document.getElementById(
-          'global-search',
-        ) as HTMLInputElement | null;
+        const input = document.getElementById('global-search') as HTMLInputElement | null;
         input?.focus();
       }
     };
@@ -43,9 +41,9 @@ function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // 🔥 Load CSV on first mount
+  // Load CSV on first mount
   useEffect(() => {
-    if (users.length > 0) return; // already loaded
+    if (users.length > 0) return;
 
     let cancelled = false;
     const load = async () => {
@@ -55,10 +53,12 @@ function App() {
         if (!cancelled) {
           setUsers(data);
           setError(null);
+          notify('Successfully loaded user data', 'success');
         }
       } catch (err: any) {
         if (!cancelled) {
           setError(err?.message ?? 'Failed to load users from CSV');
+          notify('Failed to load user data', 'error');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -69,7 +69,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [users.length, setLoading, setError, setUsers]);
+  }, [users.length, setLoading, setError, setUsers, notify]);
 
   const handleAddUserClick = () => {
     setEditingUser(null);
@@ -93,10 +93,10 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'users_export.csv';
+    a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('Exported CSV', 'success');
+    notify(`Exported ${users.length} users to CSV`, 'success');
   };
 
   const handleExportJson = () => {
@@ -106,47 +106,56 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'users_export.json';
+    a.download = `users_export_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('Exported JSON', 'success');
+    notify(`Exported ${users.length} users to JSON`, 'success');
   };
 
   const handleDeleteSelected = () => {
-    if (
-      window.confirm('Are you sure you want to delete all selected users?')
-    ) {
+    const count = selectedIds.size;
+    if (count > 0) {
       deleteSelected();
-      notify('Deleted selected users', 'success');
+      notify(`Deleted ${count} selected user${count > 1 ? 's' : ''}`, 'success');
     }
   };
 
   return (
     <Layout>
       <TopBar onAddUserClick={handleAddUserClick} />
-      <DashboardStats />
-      <UserFiltersBar
-        onExportCsv={handleExportCsv}
-        onExportJson={handleExportJson}
-        onDeleteSelected={handleDeleteSelected}
-      />
-
+      
       {loading && <LoadingSkeleton />}
 
       {error && (
-        <div className="mt-3 text-sm text-rose-500">
-          {error}{' '}
-          <button
-            onClick={() => window.location.reload()}
-            className="underline"
-          >
-            Retry
-          </button>
+        <div className="rounded-2xl bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 border-2 border-rose-200 dark:border-rose-800 p-6 animate-fade-in">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-rose-900 dark:text-rose-100 mb-1">Error Loading Data</h3>
+              <p className="text-sm text-rose-700 dark:text-rose-300 mb-3">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
+              >
+                Retry Loading
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {!loading && !error && (
         <>
+          <DashboardStats />
+          <UserFiltersBar
+            onExportCsv={handleExportCsv}
+            onExportJson={handleExportJson}
+            onDeleteSelected={handleDeleteSelected}
+          />
           <UserTable onEdit={handleEditUser} />
           <DemographicsChart />
         </>
