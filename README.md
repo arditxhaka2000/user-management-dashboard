@@ -95,3 +95,27 @@ Pull requests are welcome.
 If suggesting feature changes, please open an issue before submitting a PR.
 
 ---
+
+## Approach & Architecture
+
+The project was built with a modular component structure to keep logic, UI, and state responsibilities separated and maintainable. Zustand was chosen for global state management due to its simplicity, persistence support, and minimal boilerplate compared to alternatives like Redux.
+
+CSV data is loaded once at startup, parsed using PapaParse, and then stored in localStorage so changes persist across reloads. The UI is composed of reusable components such as a modal, toast notifications, pagination controls, filter toolbar, and a debounced search input for smoother performance and a better user experience.
+
+---
+
+## Challenges & Solutions
+
+### 🔹 CSV Loading & Persistence
+
+Instead of reloading the CSV file on every refresh, the application detects the first load and stores the parsed user list using Zustand persistence. This allows CRUD operations to behave like a real app with retained data, while still providing a reset mechanism when needed.
+
+### 🔹 Search & Filtering Performance
+
+To prevent excessive re-rendering during typing, the search functionality uses a 300 ms debounced input hook. This ensures responsive filtering behavior, especially with larger datasets.
+
+### 🔹 Consistent UI/UX
+
+Tailwind CSS and CSS custom properties were used to build a lightweight design system with consistent spacing, typography, and color tokens. Dark/light theme support, micro-animations, skeleton loading states, and hover feedback were added to enhance usability and create a polished experience.
+
+---
